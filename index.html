@@ -234,8 +234,9 @@
         <nav class="space-x-4 space-x-reverse hidden md:flex items-center">
             <button id="show-user-view"
                 class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold">المتجر</button>
-            <button id="account-settings-btn"
-                class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold">إعدادات الحساب</button>
+            <button id="show-admin-view"
+                class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold">لوحة
+                التحكم</button>
             <button id="show-cart-btn"
                 class="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition duration-300 ease-in-out shadow-md font-semibold flex items-center">
                 <i class="fas fa-shopping-cart ml-2"></i> سلة التسوق (<span id="cart-count">0</span>)
@@ -261,8 +262,9 @@
         <nav class="flex flex-col space-y-2 text-right">
             <button id="show-user-view-mobile"
                 class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold text-lg py-2">المتجر</button>
-            <button id="account-settings-btn-mobile"
-                class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold text-lg py-2">إعدادات الحساب</button>
+            <button id="show-admin-view-mobile"
+                class="text-gray-700 hover:text-pink-600 transition duration-300 ease-in-out font-semibold text-lg py-2">لوحة
+                التحكم</button>
             <button id="logout-btn-mobile"
                 class="bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition duration-300 ease-in-out font-semibold hidden text-lg">
                 <i class="fas fa-sign-out-alt ml-2"></i> تسجيل الخروج
@@ -844,18 +846,6 @@ if (isAdminDeviceStored) {
             adminSection.classList.add('hidden');
 
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 logoutBtn.classList.remove('hidden');
                 logoutBtnMobile.classList.remove('hidden');
                 if (state.isAdmin) {
@@ -912,6 +902,7 @@ if (isAdminDeviceStored) {
                 loadUserData();
                 
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else {
                 showNotification('خطأ في البريد الإلكتروني أو كلمة المرور.', 'error');
             }
@@ -943,6 +934,7 @@ if (isAdminDeviceStored) {
                 clearUserData();
                 
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             }
         });
 
@@ -962,6 +954,7 @@ if (isAdminDeviceStored) {
                 clearUserData();
                 
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else {
                 showNotification('بيانات المسؤول غير صحيحة.', 'error');
             }
@@ -976,6 +969,7 @@ if (isAdminDeviceStored) {
             clearUserData();
             
             updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
         });
 
         document.getElementById('logout-btn-mobile').addEventListener('click', () => {
@@ -987,6 +981,7 @@ if (isAdminDeviceStored) {
             clearUserData();
             
             updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             toggleMobileMenu();
         });
 
@@ -1029,6 +1024,7 @@ if (isAdminDeviceStored) {
             filteredProducts.forEach(product => {
                 const productCard = document.createElement('div');
                 productCard.className = 'product-card bg-white rounded-xl shadow-lg overflow-hidden p-6 text-center transition-transform hover:scale-105';
+                productCard.setAttribute('data-id', product.id);
                 const isOutOfStock = product.stock === 0;
                 productCard.innerHTML = `
                     <img src="${product.image}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/94a3b8/ffffff?text=Product+Image';" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
@@ -1539,34 +1535,6 @@ if (isAdminDeviceStored) {
             }
         }
 
-        
-        // --- Account Settings ---
-        document.getElementById('account-settings-btn')?.addEventListener('click', () => {
-            if (!state.currentUser || state.isAdmin) return;
-            document.getElementById('account-name').value = state.currentUserName || '';
-            document.getElementById('account-password').value = state.users[state.currentUser] || '';
-            openModal('account-settings-modal');
-        });
-
-        document.getElementById('account-settings-btn-mobile')?.addEventListener('click', () => {
-            if (!state.currentUser || state.isAdmin) return;
-            document.getElementById('account-name').value = state.currentUserName || '';
-            document.getElementById('account-password').value = state.users[state.currentUser] || '';
-            openModal('account-settings-modal');
-        });
-
-        document.getElementById('account-settings-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newName = document.getElementById('account-name').value;
-            const newPassword = document.getElementById('account-password').value;
-            if (state.currentUser) {
-                state.currentUserName = newName;
-                state.users[state.currentUser] = newPassword;
-                showNotification('تم تحديث بيانات الحساب بنجاح!', 'success');
-                closeModal('account-settings-modal');
-            }
-        });
-
         // --- Modals ---
 
         function openModal(modalId) {
@@ -1768,18 +1736,6 @@ if (isAdminDeviceStored) {
         // --- Local Storage Functions ---
         function saveCartToLocalStorage() {
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 localStorage.setItem(`cart_${state.currentUser}`, JSON.stringify(state.cart));
             } else {
                 // guest cart
@@ -1789,18 +1745,6 @@ if (isAdminDeviceStored) {
 
         function loadCartFromLocalStorage() {
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 const savedCart = localStorage.getItem(`cart_${state.currentUser}`);
                 if (savedCart) {
                     state.cart = JSON.parse(savedCart);
@@ -1859,18 +1803,6 @@ if (isAdminDeviceStored) {
             loadCartFromLocalStorage();
             // if user logged in, try to merge any existing guest cart into their user cart
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 const guestRaw = localStorage.getItem('cart');
                 if (guestRaw) {
                     try {
@@ -1940,6 +1872,7 @@ if (isAdminDeviceStored) {
             
             populateCategoryFilter();
             updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
 
             document.getElementById('print-invoice-btn').addEventListener('click', () => {
                 if (state.currentInvoice) {
@@ -1962,20 +1895,9 @@ if (isAdminDeviceStored) {
         // View Toggles
         document.getElementById('show-user-view').addEventListener('click', () => {
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 state.isAdmin = false;
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else {
                 showNotification('يرجى تسجيل الدخول أولاً.', 'info');
             }
@@ -1983,20 +1905,9 @@ if (isAdminDeviceStored) {
 
         document.getElementById('show-user-view-mobile').addEventListener('click', () => {
             if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 state.isAdmin = false;
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else {
                 showNotification('يرجى تسجيل الدخول أولاً.', 'info');
             }
@@ -2007,19 +1918,8 @@ if (isAdminDeviceStored) {
             if (state.currentUser && state.users[state.currentUser] === 'admin123') {
                 state.isAdmin = true;
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 showNotification('ليس لديك صلاحية الوصول.', 'error');
             } else {
                 showNotification('يرجى تسجيل الدخول كمسؤول أولاً.', 'info');
@@ -2030,19 +1930,8 @@ if (isAdminDeviceStored) {
             if (state.currentUser && state.users[state.currentUser] === 'admin123') {
                 state.isAdmin = true;
                 updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
             } else if (state.currentUser) {
-                // التحكم في ظهور السلة
-                const cartBtns = [document.getElementById('show-cart-btn'), document.getElementById('show-cart-mobile')];
-                cartBtns.forEach(btn => { if(btn) btn.style.display = state.isAdmin ? 'none' : 'inline-flex'; });
-
-                if (state.isAdmin) {
-                    adminSection.classList.remove('hidden');
-                    renderAdminDashboard();
-                } else {
-                    userSection.classList.remove('hidden');
-                    renderProducts();
-                }
-
                 showNotification('ليس لديك صلاحية الوصول.', 'error');
             } else {
                 showNotification('يرجى تسجيل الدخول كمسؤول أولاً.', 'info');
@@ -2067,13 +1956,20 @@ if (isAdminDeviceStored) {
         // Product actions delegation
         productList.addEventListener('click', (e) => {
             const btn = e.target.closest('button');
-            if (!btn) return;
-            const productId = parseInt(btn.dataset.id);
-            // Guests can add to cart without logging in; only checkout requires authentication
-            if (btn.classList.contains('add-to-cart-btn')) {
+            if (btn) {
+                const productId = parseInt(btn.dataset.id);
+                if (btn.classList.contains('add-to-cart-btn')) {
+                    addToCart(productId);
+                    return;
+                } else if (btn.classList.contains('view-details-btn')) {
+                    showProductDetails(productId);
+                    return;
+                }
+            }
+            const card = e.target.closest('.product-card');
+            if (card && card.dataset.id) {
+                const productId = parseInt(card.dataset.id);
                 addToCart(productId);
-            } else if (btn.classList.contains('view-details-btn')) {
-                showProductDetails(productId);
             }
         });
 
@@ -2564,6 +2460,7 @@ safeAddListener('register-form', 'submit', async (e) => {
         showNotification('تم إنشاء الحساب وتسجيل الدخول بنجاح','success');
         loadUserData(); // loads from Firestore/local merged
         updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
     }catch(err){
         console.error('register error', err);
         showNotification(err.message || 'خطأ في إنشاء الحساب','error');
@@ -2604,6 +2501,7 @@ safeAddListener('admin-login-form','submit', async (e) => {
             showNotification('تم تسجيل دخول المسؤول (محلي)','success');
             loadUserData();
             updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
         } else {
             showNotification('بيانات المسؤول غير صحيحة','error');
         }
@@ -2611,8 +2509,10 @@ safeAddListener('admin-login-form','submit', async (e) => {
 }, true);
 
 // Logout buttons
-safeAddListener('logout-btn','click', async (e)=>{ e.preventDefault(); try{ await signOut(auth); state.currentUser=null; state.isAdmin=false; localStorage.removeItem('cart'); showNotification('تم تسجيل الخروج','success'); updateView(); }catch(err){ console.error(err); showNotification('خطأ أثناء تسجيل الخروج','error'); } }, true);
-safeAddListener('logout-btn-mobile','click', async (e)=>{ e.preventDefault(); try{ await signOut(auth); state.currentUser=null; state.isAdmin=false; localStorage.removeItem('cart'); showNotification('تم تسجيل الخروج','success'); updateView(); toggleMobileMenu(); }catch(err){ console.error(err); showNotification('خطأ أثناء تسجيل الخروج','error'); } }, true);
+safeAddListener('logout-btn','click', async (e)=>{ e.preventDefault(); try{ await signOut(auth); state.currentUser=null; state.isAdmin=false; localStorage.removeItem('cart'); showNotification('تم تسجيل الخروج','success'); updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard(); }catch(err){ console.error(err); showNotification('خطأ أثناء تسجيل الخروج','error'); } }, true);
+safeAddListener('logout-btn-mobile','click', async (e)=>{ e.preventDefault(); try{ await signOut(auth); state.currentUser=null; state.isAdmin=false; localStorage.removeItem('cart'); showNotification('تم تسجيل الخروج','success'); updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard(); toggleMobileMenu(); }catch(err){ console.error(err); showNotification('خطأ أثناء تسجيل الخروج','error'); } }, true);
 
 // Listen to auth state changes
 onAuthStateChanged(auth, async (user) => {
@@ -2625,6 +2525,7 @@ onAuthStateChanged(auth, async (user) => {
         await mergeGuestCartIntoFirestore();
         await loadCartFromFirestore();
         updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
     } else {
         // signed out
         state.currentUser = null;
@@ -2632,6 +2533,7 @@ onAuthStateChanged(auth, async (user) => {
         // load guest cart from localStorage
         loadCartFromLocalStorage();
         updateView();
+                if (typeof renderAdminDashboard === 'function') renderAdminDashboard();
     }
 });
 
@@ -2654,30 +2556,6 @@ window.addEventListener('beforeunload', async ()=>{
 
 </script>
 
-
-    <!-- Account Settings Modal -->
-    <div id="account-settings-modal" class="modal">
-        <div class="modal-content md:max-w-2xl">
-            <span class="close-button" onclick="closeModal('account-settings-modal')">&times;</span>
-            <h2 class="text-3xl font-bold text-pink-600 mb-6 text-center">إعدادات الحساب</h2>
-            <form id="account-settings-form" class="space-y-4">
-                <div>
-                    <label for="account-name" class="block text-gray-700 font-medium mb-1">الاسم</label>
-                    <input type="text" id="account-name"
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        required>
-                </div>
-                <div>
-                    <label for="account-password" class="block text-gray-700 font-medium mb-1">كلمة المرور</label>
-                    <input type="password" id="account-password"
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        required>
-                </div>
-                <button type="submit"
-                    class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-pink-700 transition duration-300 shadow-lg">حفظ التغييرات</button>
-            </form>
-        </div>
-    </div>
 </body>
 
 </html>
