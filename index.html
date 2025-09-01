@@ -830,6 +830,16 @@
 
         // --- View & State Management ---
 
+// إذا الجهاز معرف كجهاز مسؤول، نفتح لوحة التحكم مباشرة
+const isAdminDeviceStored = localStorage.getItem('isAdminDevice') === 'true';
+if (isAdminDeviceStored) {
+    state.isAdmin = true;
+    if (!state.currentUser) {
+        state.currentUser = 'admin@gmail.com';
+    }
+}
+
+
         function updateView() {
             authSection.classList.add('hidden');
             userSection.classList.add('hidden');
@@ -934,6 +944,9 @@
                 state.currentUser = email;
                 state.isAdmin = true;
                 showNotification('تم تسجيل دخول المسؤول بنجاح!');
+                // إذا تسجيل دخول مسؤول من هذا الجهاز نخزن علامة في localStorage
+                localStorage.setItem('isAdminDevice', 'true');
+
                 
                 // تنظيف بيانات التخزين المحلي للمستخدم السابق
                 clearUserData();
